@@ -1,0 +1,39 @@
+pipeline {
+    agent any
+    stages {
+       stage ('Pull The code From My Github Repo') {
+                steps { 
+                    echo 'pulling the dockerfile fromgithib'
+                    git branch: 'main', credentialsId: 'github ', url: 'https://github.com/gaganagithub/Docker.git'
+                }
+            }
+            stage(" build docker image") {
+                steps {
+                    echo "build the image from dockerhub"
+                    sh " docker build -t myimg ."
+                }
+            }
+            stage ( 'push doker image') {
+               steps { 
+                   echo "pushing dockerimage to dockerhub"
+                   withCredentials([usernamePassword(credentialsId: 'dockerhub', passwordVariable: 'dpass', usernameVariable: 'duser')]) {
+                     sh "docker tag gagimg ${env.duser}/myimg:v1"
+                     sh "docker login -u ${env.duser} -p ${env.dpass}"
+                     sh "docker push ${env.duser}/myimg:v1"
+                   }
+               }
+            }
+            stage (" deploying container from doker image") {
+                steps { 
+                    echo " deploying container from docker image"
+                    script {
+                        def dockerrm = "docker rm  -f con2"
+                        def dockerrun = "docker run -p 80:80  -d --name con2 haripoudel0309/myimg:v1"
+                        sh dockerrm
+                        sh dockerrun 
+                        
+                    }
+                }
+            }
+       }
+    }
